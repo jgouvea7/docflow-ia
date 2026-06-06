@@ -1,0 +1,8 @@
+package com.jonnathas.backend.document.dto;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record DocumentContentRequest(
+        @NotBlank String content
+) {
+}

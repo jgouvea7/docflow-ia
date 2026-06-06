@@ -1,0 +1,303 @@
+<div class="animate-fade-up space-y-6">
+
+  <!-- ── Back Nav + Last Updated ───────────────────────────────── -->
+  <div class="flex items-center justify-between">
+    <a
+      routerLink="/upload"
+      class="inline-flex items-center gap-2 rounded-lg border border-border-subtle px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-border-muted hover:bg-surface-700 hover:text-slate-200"
+    >
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+      </svg>
+      Voltar ao upload
+    </a>
+
+    @if (lastUpdated()) {
+      <div class="flex items-center gap-1.5 text-xs text-slate-600">
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Atualizado às {{ lastUpdated() | date:'HH:mm:ss' }}
+      </div>
+    }
+  </div>
+
+  <!-- ── Loading Skeleton ───────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
+      <div class="card-elevated space-y-4 rounded-2xl p-6">
+        <app-skeleton height="0.75rem" width="5rem" />
+        <app-skeleton height="1.75rem" width="70%" />
+        <app-skeleton height="0.75rem" width="12rem" />
+        <div class="mt-2 space-y-3 rounded-xl border border-border-subtle p-4">
+          <app-skeleton height="0.75rem" width="40%" />
+          <app-skeleton height="0.75rem" width="60%" />
+          <app-skeleton height="0.75rem" width="50%" />
+        </div>
+        <div class="mt-4 space-y-3">
+          @for (i of [1,2,3]; track i) {
+            <div class="flex items-center gap-3">
+              <app-skeleton height="2.5rem" width="2.5rem" radius="50%" />
+              <div class="flex-1 space-y-1.5">
+                <app-skeleton height="0.75rem" width="50%" />
+                <app-skeleton height="0.65rem" width="75%" />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="card-elevated rounded-2xl p-6">
+        <app-skeleton height="1.25rem" width="10rem" />
+        <div class="mt-4 space-y-2">
+          @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            <app-skeleton height="0.75rem" [width]="(85 - i * 5) + '%'" />
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Error State ────────────────────────────────────────────── -->
+  @if (!loading() && errorMsg()) {
+    <div class="animate-fade-up card-elevated rounded-2xl p-8 text-center">
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
+        <svg class="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+        </svg>
+      </div>
+      <h2 class="font-display text-xl font-bold text-slate-100">Não foi possível carregar</h2>
+      <p class="mt-2 text-sm text-slate-400">{{ errorMsg() }}</p>
+      <a routerLink="/upload" class="mt-6 inline-flex items-center gap-2 rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-surface-700">
+        Voltar ao upload
+      </a>
+    </div>
+  }
+
+  <!-- ── Document Grid ──────────────────────────────────────────── -->
+  @if (!loading() && doc()) {
+    <div class="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
+
+      <!-- Left Column: Info + Timeline -->
+      <div class="space-y-5">
+
+        <!-- ── Document Info Card ──────────────────────────────── -->
+        <div class="card-elevated animate-fade-up rounded-2xl p-6">
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-brand-400">Documento</p>
+              <h1 class="font-display mt-2 truncate text-2xl font-bold text-slate-100">
+                {{ doc()!.fileName }}
+              </h1>
+              <p class="mt-1 font-mono text-xs text-slate-600">{{ doc()!.id }}</p>
+            </div>
+            <app-status-badge
+              [status]="docStatus()"
+              [pulse]="isActive()"
+            />
+          </div>
+
+          <!-- Meta grid -->
+          <div class="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-border-subtle bg-surface-800/50 p-4 text-xs">
+            <div>
+              <p class="uppercase tracking-wide text-slate-500">Upload em</p>
+              <p class="mt-1 font-semibold text-slate-300">
+                {{ doc()!.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+            <div>
+              <p class="uppercase tracking-wide text-slate-500">Job RabbitMQ</p>
+              <p class="mt-1 font-mono text-[10px] text-slate-400 truncate">
+                {{ doc()!.jobId ?? 'N/A' }}
+              </p>
+            </div>
+            <div>
+              <p class="uppercase tracking-wide text-slate-500">Concluído em</p>
+              <p class="mt-1 font-semibold text-slate-300">
+                {{ doc()!.completedAt ? (doc()!.completedAt | date:'dd/MM/yyyy HH:mm') : 'Aguardando' }}
+              </p>
+            </div>
+            <div>
+              <p class="uppercase tracking-wide text-slate-500">Progresso</p>
+              <p class="mt-1 font-semibold text-slate-300">
+                {{ doc()!.progressPercentage ?? 0 }}%
+              </p>
+            </div>
+            <div class="col-span-2">
+              <p class="uppercase tracking-wide text-slate-500">Atualização automática</p>
+              @if (isActive()) {
+                <p class="mt-1 flex items-center gap-2 text-sm font-semibold text-brand-400">
+                  <span class="relative flex h-2 w-2">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-60"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-brand-400"></span>
+                  </span>
+                  Polling a cada 5 segundos
+                </p>
+              } @else {
+                <p class="mt-1 text-sm font-semibold text-slate-400">Finalizado</p>
+              }
+            </div>
+          </div>
+
+          @if (doc()!.progressPercentage !== null && doc()!.progressPercentage !== undefined) {
+            <div class="mt-4">
+              <app-progress-bar [progress]="doc()!.progressPercentage ?? 0" label="Andamento do processamento" />
+            </div>
+          }
+
+          @if (doc()!.errorMessage) {
+            <div class="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+              {{ doc()!.errorMessage }}
+            </div>
+          }
+        </div>
+
+        <!-- ── Timeline Card ───────────────────────────────────── -->
+        <div class="card-elevated animate-fade-up rounded-2xl p-6 delay-75">
+          <h2 class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Timeline</h2>
+          <div class="relative mt-5 space-y-0">
+            @for (step of timelineSteps; track step.status; let last = $last) {
+              <div class="flex items-start gap-4">
+                <!-- Connector line -->
+                <div class="relative flex flex-col items-center">
+                  <!-- Circle -->
+                  <div
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300 text-sm"
+                    [class]="getStepState(step.status) === 'complete'
+                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                      : getStepState(step.status) === 'current'
+                        ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'
+                        : getStepState(step.status) === 'failed'
+                          ? 'border-rose-500/50 bg-rose-500/10 text-rose-400'
+                          : 'border-surface-500 bg-surface-700 text-slate-600'"
+                  >
+                    @if (getStepState(step.status) === 'complete') {
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                      </svg>
+                    } @else if (getStepState(step.status) === 'current') {
+                      <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-brand-400"></span>
+                    } @else if (getStepState(step.status) === 'failed') {
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    } @else {
+                      <span class="h-2 w-2 rounded-full bg-slate-600"></span>
+                    }
+                  </div>
+                  <!-- Vertical line -->
+                  @if (!last) {
+                    <div class="h-8 w-px bg-border-subtle"></div>
+                  }
+                </div>
+
+                <!-- Content -->
+                <div class="pb-6">
+                  <p class="text-sm font-semibold"
+                     [class]="getStepState(step.status) === 'complete'
+                       ? 'text-emerald-400'
+                       : getStepState(step.status) === 'current'
+                         ? 'text-brand-300'
+                         : getStepState(step.status) === 'failed'
+                           ? 'text-rose-400'
+                           : 'text-slate-600'">
+                    {{ step.label }}
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-600">{{ step.desc }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Extracted Content -->
+      <div class="card-elevated animate-fade-up rounded-2xl p-6 delay-150">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-100">Conteúdo extraído</h2>
+          @if (isActive()) {
+            <span class="flex items-center gap-1.5 text-xs text-slate-500">
+              <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+                <path class="opacity-70" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/>
+              </svg>
+              Em processamento
+            </span>
+          }
+        </div>
+
+        <div class="mt-5">
+          <!-- Processing state -->
+          @if (isActive()) {
+            <div class="flex flex-col items-center justify-center gap-4 rounded-xl border border-border-subtle bg-surface-800/40 py-14 text-center">
+              <div class="relative">
+                <div class="h-12 w-12 animate-spin rounded-full border-2 border-brand-500/20 border-t-brand-500"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <svg class="h-5 w-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-300">Extraindo texto do documento</p>
+                <p class="mt-1 text-xs text-slate-600">Esta tela atualiza automaticamente até finalizar.</p>
+              </div>
+              <!-- Bouncing dots -->
+              <div class="flex gap-1.5">
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400"></span>
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400 delay-75"></span>
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-400 delay-150"></span>
+              </div>
+            </div>
+          }
+
+          <!-- Completed with content -->
+          @if (doc()!.status === 'COMPLETED' && doc()!.content) {
+            <div class="animate-fade-in overflow-hidden rounded-xl border border-border-subtle bg-surface-900">
+              <!-- Terminal header -->
+              <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2.5">
+                <div class="flex gap-1.5">
+                  <span class="h-2.5 w-2.5 rounded-full bg-rose-500/60"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-amber-500/60"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-500/60"></span>
+                </div>
+                <span class="ml-2 font-mono text-[10px] text-slate-600">content.txt</span>
+              </div>
+              <!-- Content -->
+              <div class="max-h-[520px] overflow-y-auto p-5">
+                <pre class="font-mono text-xs leading-relaxed text-slate-300 whitespace-pre-wrap break-words">{{ doc()!.content }}</pre>
+              </div>
+            </div>
+          }
+
+          <!-- Completed without content -->
+          @if (doc()!.status === 'COMPLETED' && !doc()!.content) {
+            <div class="animate-fade-in flex flex-col items-center justify-center gap-3 rounded-xl border border-border-subtle bg-surface-800/40 py-14 text-center">
+              <svg class="h-10 w-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+              </svg>
+              <p class="text-sm text-slate-500">Nenhum texto foi extraído deste documento.</p>
+            </div>
+          }
+
+          <!-- Failed state -->
+          @if (doc()!.status === 'FAILED') {
+            <div class="animate-fade-in rounded-xl border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="flex items-start gap-3">
+                <svg class="mt-0.5 h-5 w-5 shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-semibold text-rose-400">Falha no processamento</p>
+                  <p class="mt-1 text-xs text-rose-300/70">
+                    Verifique os logs do worker ou o status da fila RabbitMQ.
+                  </p>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

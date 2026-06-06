@@ -2,6 +2,20 @@ spring:
   application:
     name: backend
 
+  datasource:
+    url: jdbc:postgresql://localhost:5432/docflow
+    username: docflow
+    password: docflow
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
 
   rabbitmq:
     host: localhost
@@ -9,3 +23,12 @@ spring:
     username: guest
     password: guest
 
+app:
+  storage:
+    upload-dir: storage/uploads
+  security:
+    jwt:
+      issuer: docflow-ai
+      secret: VGhpcy1pcy1hLWRldmVsb3BtZW50LXNlY3JldC1mb3ItZG9jZmxvdy1haS0zMi1ieXRlcw==
+      expiration-minutes: 240
+    internal-token: change-me-in-local-dev
