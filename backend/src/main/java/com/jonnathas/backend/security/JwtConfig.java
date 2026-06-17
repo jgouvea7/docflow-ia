@@ -41,6 +41,8 @@ public class JwtConfig {
 
     private SecretKey secretKey(String secret) {
         byte[] decoded = Base64.getDecoder().decode(secret);
+        System.out.println("SECRET=[" + secret + "]");
+        System.out.println("SECRET_LENGTH=" + secret.length());
         return new SecretKeySpec(decoded, "HmacSHA256");
     }
 }

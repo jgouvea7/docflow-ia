@@ -32,6 +32,13 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'documents/:id/chat',
+        loadComponent: () =>
+          import('./features/document-chat/document-chat.component').then(
+            (m) => m.DocumentChatComponent
+          )
+      },
+      {
         path: 'arquivos',
         loadComponent: () =>
           import('./features/my-files/my-files.component').then((m) => m.MyFilesComponent)
