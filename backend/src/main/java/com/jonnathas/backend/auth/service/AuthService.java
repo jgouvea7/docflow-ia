@@ -69,15 +69,15 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+                    new UsernamePasswordAuthenticationToken(request.identifier(), request.password())
             );
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou senha incorretos");
         }
 
         User user = userRepository.findByEmailIgnoreCaseOrDisplayNameIgnoreCase(
-                        request.email(),
-                        request.email()
+                        request.identifier(),
+                        request.identifier()
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou senha incorretos"));
 
