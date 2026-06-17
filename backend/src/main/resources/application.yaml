@@ -3,19 +3,28 @@ spring:
     name: backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/docflow
+    url: jdbc:postgresql://localhost:5432/docflow_ai
     username: docflow
     password: docflow
+
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 200MB
+
+server:
+  error:
+    include-message: always
 
   rabbitmq:
     host: localhost
@@ -26,6 +35,8 @@ spring:
 app:
   storage:
     upload-dir: storage/uploads
+  ai:
+    service-url: http://localhost:8000
   security:
     jwt:
       issuer: docflow-ai

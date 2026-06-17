@@ -43,13 +43,14 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/jobs/**").permitAll()
-                        .requestMatchers("/api/v1/documents/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/documents/*/content").hasRole("SERVICE")
-                        .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/api/v1/jobs/*/status").hasRole("SERVICE")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/documents/*/content").permitAll()//hasRole("SERVICE")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/documents/*/embeddings").permitAll()//hasRole("SERVICE")
+                        .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/api/v1/jobs/*/status").permitAll()//hasRole("SERVICE")
+                        .requestMatchers("/api/v1/documents/*/chat/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
@@ -86,8 +87,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://127.0.0.1:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Internal-Token"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

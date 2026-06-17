@@ -6,11 +6,14 @@ import com.jonnathas.backend.document.dto.DocumentStatusResponse;
 import com.jonnathas.backend.document.entity.Document;
 import com.jonnathas.backend.document.entity.DocumentContent;
 import com.jonnathas.backend.document.entity.DocumentStatus;
+import com.jonnathas.backend.document.infrastructure.ChatMessageRepository;
 import com.jonnathas.backend.document.infrastructure.DocumentContentRepository;
+import com.jonnathas.backend.document.infrastructure.DocumentEmbeddingRepository;
 import com.jonnathas.backend.document.infrastructure.DocumentRepository;
 import com.jonnathas.backend.job.entity.Job;
 import com.jonnathas.backend.job.infrastructure.JobRepository;
 import com.jonnathas.backend.user.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,21 +34,24 @@ import java.util.UUID;
 @Service
 public class DocumentService {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
+
     private final Path uploadRoot;
-    private final DocumentRepository documentRepository;
-    private final DocumentContentRepository documentContentRepository;
-    private final JobRepository jobRepository;
+    @Autowired
+    private DocumentRepository documentRepository;
+    @Autowired
+    private DocumentContentRepository documentContentRepository;
+    @Autowired
+    private JobRepository jobRepository;
+    @Autowired
+    private DocumentEmbeddingRepository documentEmbeddingRepository;
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
 
     public DocumentService(
-            @Value("${app.storage.upload-dir}") String uploadDir,
-            DocumentRepository documentRepository,
-            DocumentContentRepository documentContentRepository,
-            JobRepository jobRepository
+            @Value("${app.storage.upload-dir}") String uploadDir
     ) {
         this.uploadRoot = Paths.get(uploadDir);
-        this.documentRepository = documentRepository;
-        this.documentContentRepository = documentContentRepository;
-        this.jobRepository = jobRepository;
     }
 
     @Transactional
@@ -109,16 +117,24 @@ public class DocumentService {
         Document document = getOwnedDocument(documentId, owner);
         Path storedPath = Path.of(document.getFilePath());
         try {
+            chatMessageRepository.deleteByDocument_Id(documentId);
+            documentRepository.delete(document);
             Files.deleteIfExists(storedPath);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to delete stored file", ex);
+        } catch (Exception ex) {
+            log.error("Failed to delete document {}: {}", documentId, ex.getMessage(), ex);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Não foi possível excluir o documento", ex);
         }
-        documentRepository.delete(document);
     }
 
     @Transactional(readOnly = true)
     public Document getDocumentForInternalWorker(UUID documentId) {
         return documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
+    }
+
+    @Transactional
+    public Document save(Document document) {
+        return documentRepository.save(document);
     }
 }

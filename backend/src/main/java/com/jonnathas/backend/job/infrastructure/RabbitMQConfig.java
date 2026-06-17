@@ -1,5 +1,6 @@
 package com.jonnathas.backend.job.infrastructure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -21,6 +22,11 @@ public class RabbitMQConfig {
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean

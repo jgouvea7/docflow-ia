@@ -1,5 +1,9 @@
+import logging
+
 from api_client.backend_client import BackendClient
 from document_reader.reader import DocumentReader
+
+logger = logging.getLogger(__name__)
 
 
 class ExtractionService:
@@ -35,6 +39,40 @@ class ExtractionService:
                 document_id,
                 text
             )
+
+            self.client.update_job_status(
+                job_id,
+                "PROCESSING",
+                progress_percentage=60
+            )
+
+            # Pipeline RAG: chunking + embeddings
+            try:
+                from service.rag import create_document_index
+                index = create_document_index(text)
+                chunks = index["chunks"]
+                embeddings = index["embeddings"]
+
+                embedding_chunks = []
+                for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+                    embedding_chunks.append({
+                        "chunkIndex": i,
+                        "chunkContent": chunk,
+                        "embedding": emb.tolist()
+                    })
+
+                self.client.save_embeddings(document_id, embedding_chunks)
+                logger.info("embeddings_saved documentId=%s chunks=%d", document_id, len(embedding_chunks))
+
+            except Exception as rag_exc:
+                logger.warning("embedding_generation_failed documentId=%s error=%s", document_id, rag_exc)
+                self.client.update_job_status(
+                    job_id,
+                    "COMPLETED",
+                    progress_percentage=100,
+                    error_message=f"Texto extraído, mas embeddings não gerados: {rag_exc}"
+                )
+                return
 
             self.client.update_job_status(
                 job_id,

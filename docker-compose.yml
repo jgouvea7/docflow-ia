@@ -1,29 +1,32 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:0.7.0-pg16
     environment:
       POSTGRES_DB: docflow_ai
-      POSTGRES_USER: docflow
-      POSTGRES_PASSWORD: docflow
+      POSTGRES_USER: ${DB_USERNAME:-docflow}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-docflow}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docflow -d docflow_ai"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-docflow} -d docflow_ai"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    stop_grace_period: 30s
 
   rabbitmq:
     image: rabbitmq:3-management
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -33,46 +36,66 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ./backend 
+      dockerfile: Dockerfile 
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/docflow_ai
-      SPRING_DATASOURCE_USERNAME: docflow
-      SPRING_DATASOURCE_PASSWORD: docflow
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-docflow}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-docflow}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: guest
-      SPRING_RABBITMQ_PASSWORD: guest
-    ports:
-      - "8080:8080"
-    volumes:
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
+      APP_AI_SERVICE_URL: http://service-ai:8000
+      APP_STORAGE_UPLOAD_DIR: /app/storage/uploads
+      APP_SECURITY_JWT_SECRET: ${JWT_SECRET:-VGhpcy1pcy1hLWRldmVsb3BtZW50LXNlY3JldC1mb3ItZG9jZmxvdy1haS0zMi1ieXRlcw==}
+      APP_SECURITY_INTERNAL_TOKEN: ${INTERNAL_TOKEN:-change-me-in-local-dev}
+    ports: 
+      - "127.0.0.1:8080:8080" 
+    volumes: 
       - ./storage/uploads:/app/storage/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    healthcheck: 
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/actuator/health"]
+      interval: 15s 
+      timeout: 5s 
+      retries: 10 
+      start_period: 60s 
+    depends_on: 
+      postgres: 
+        condition: service_healthy 
+      rabbitmq: 
+        condition: service_healthy 
     restart: unless-stopped
 
   service-ai:
     build:
       context: ./service-ai
       dockerfile: Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     environment:
       PYTHONUNBUFFERED: 1
       BACKEND_BASE_URL: http://backend:8080
+      BACKEND_INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      RABBITMQ_USER: guest
-      RABBITMQ_PASS: guest
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-guest}
       RABBITMQ_QUEUE: job_queue
       STORAGE_UPLOADS_PATH: /app/storage/uploads
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./storage/uploads:/app/storage/uploads
+      - ~/.cache/huggingface/hub:/root/.cache/huggingface/hub
     depends_on:
       backend:
         condition: service_started
@@ -82,6 +105,8 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
+  huggingface_cache:
 
 
 

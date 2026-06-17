@@ -129,102 +129,18 @@ import { FileSizePipe } from '../../shared/pipes/file-size.pipe';
                     >
                       Detalhes
                     </a>
+                    @if (doc.status === 'COMPLETED') {
+                      <a
+                        [routerLink]="['/documents', doc.id, 'chat']"
+                        class="rounded-xl border border-brand-500/30 bg-brand-500/10 px-4 py-2 text-sm font-medium text-brand-400 transition hover:bg-brand-500/20"
+                      >
+                        Conversar
+                      </a>
+                    }
                     <button
                       type="button"
                       class="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/20"
                       (click)="deleteDocument(doc)"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              </article>
-            }
-          }
-        </div>
-      </section>
-
-      <section class="card-elevated rounded-3xl p-6">
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <h2 class="font-display text-xl font-semibold text-slate-100">Histórico de Jobs</h2>
-            <p class="text-xs text-slate-500">Execuções, falhas e duração de processamento.</p>
-          </div>
-          <span class="text-xs text-slate-500">{{ jobs().length }} jobs</span>
-        </div>
-
-        <div class="mt-5 space-y-4">
-          @if (loading()) {
-            @for (i of [1, 2, 3]; track i) {
-              <div class="rounded-2xl border border-border-subtle bg-surface-800/50 p-4">
-                <app-skeleton height="1rem" width="40%" />
-                <div class="mt-3 grid gap-3 md:grid-cols-4">
-                  <app-skeleton height="0.8rem" width="100%" />
-                  <app-skeleton height="0.8rem" width="100%" />
-                  <app-skeleton height="0.8rem" width="100%" />
-                  <app-skeleton height="0.8rem" width="100%" />
-                </div>
-              </div>
-            }
-          } @else if (jobs().length === 0) {
-            <div class="rounded-2xl border border-dashed border-border-subtle bg-surface-800/40 p-8 text-center">
-              <p class="text-sm text-slate-400">Nenhum job encontrado.</p>
-            </div>
-          } @else {
-            @for (job of jobs(); track job.jobId) {
-              <article class="rounded-2xl border border-border-subtle bg-surface-800/50 p-4">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-3">
-                      <h3 class="truncate text-base font-semibold text-slate-100">{{ job.fileName }}</h3>
-                      <app-status-badge [status]="job.status" [pulse]="job.status === 'PROCESSING' || job.status === 'PENDING'"></app-status-badge>
-                    </div>
-
-                    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div>
-                        <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500">Execução</p>
-                        <p class="mt-1 text-sm text-slate-300">{{ job.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
-                      </div>
-                      <div>
-                        <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500">Tempo</p>
-                        <p class="mt-1 text-sm text-slate-300">
-                          {{ job.processingDurationSeconds ?? 0 }}s
-                        </p>
-                      </div>
-                      <div>
-                        <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500">Tentativas</p>
-                        <p class="mt-1 text-sm text-slate-300">{{ job.attempts }}</p>
-                      </div>
-                      <div>
-                        <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500">Processo</p>
-                        <p class="mt-1 truncate font-mono text-sm text-slate-400">{{ job.jobId }}</p>
-                      </div>
-                    </div>
-
-                    @if (job.progressPercentage !== null && job.progressPercentage !== undefined) {
-                      <div class="mt-4 max-w-xl">
-                        <app-progress-bar [progress]="job.progressPercentage ?? 0" [label]="'Progresso do job'" />
-                      </div>
-                    }
-
-                    @if (job.errorMessage) {
-                      <div class="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-                        {{ job.errorMessage }}
-                      </div>
-                    }
-                  </div>
-
-                  <div class="flex flex-wrap gap-2">
-                    <a
-                      [routerLink]="['/documents', job.documentId]"
-                      class="rounded-xl border border-border-subtle px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-surface-700"
-                    >
-                      Ver documento
-                    </a>
-                    <button
-                      type="button"
-                      class="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/20"
-                      (click)="deleteJob(job)"
                     >
                       Excluir
                     </button>
@@ -269,17 +185,21 @@ export class MyFilesComponent {
   }
 
   deleteDocument(document: DocumentSummary): void {
-    this.documentService.deleteDocument(document.id).subscribe({
-      next: () => this.refreshNow(),
-      error: (error: ApiError) => this.errorMessage.set(error.message)
-    });
+    this.documentService.deleteDocument(document.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.refreshNow(),
+        error: (error: ApiError) => this.errorMessage.set(error.message)
+      });
   }
 
   deleteJob(job: JobSummary): void {
-    this.jobService.deleteJob(job.jobId).subscribe({
-      next: () => this.refreshNow(),
-      error: (error: ApiError) => this.errorMessage.set(error.message)
-    });
+    this.jobService.deleteJob(job.jobId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.refreshNow(),
+        error: (error: ApiError) => this.errorMessage.set(error.message)
+      });
   }
 
   private refreshNow(): void {
